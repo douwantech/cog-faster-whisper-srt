@@ -20,29 +20,25 @@ class Predictor(BasePredictor):
     def setup(self) -> None:
         """Load the model into memory to make running multiple predictions efficient"""
         # self.model = torch.load("./weights.pth")
-        from huggingface_hub import snapshot_download
+        # from huggingface_hub import snapshot_download
 
-        snapshot_download(
-                        cache_dir="cache",
-                        local_dir="models",
-                        repo_id="guillaumekln/faster-whisper-large-v2",
-                        )
+        # snapshot_download(
+        #                 cache_dir="cache",
+        #                 local_dir="models",
+        #                 repo_id="guillaumekln/faster-whisper-large-v2",
+        #                 )
 
     def predict(
         self,
-        audio_file: Path = Input(description="audio input file"),
+        audio_file: str = Input(description="input file"),
+        output_file: str = Input(description="output file"),
     ) -> Path:
         """Run a single prediction on the model"""
 
         start_time = datetime.now()
-        output_file = "output.srt"
-
-        # 设置默认模型路径
-        bundle_dir = os.path.abspath(os.path.dirname(__file__))
-        model_path = os.path.join(bundle_dir, "models")
 
         # 加载模型
-        model = WhisperModel(model_size_or_path=model_path, device="cuda", compute_type="int8")
+        model = WhisperModel(model_size_or_path="/data/models", device="cuda", compute_type="int8")
 
         # 识别音频文件
         segments, info = model.transcribe(audio_file, beam_size=5, language='zh')
