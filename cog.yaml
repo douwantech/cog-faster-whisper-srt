@@ -19,6 +19,7 @@ build:
   python_packages:
     - "flask"
     - "whisper"
+    - "torch"
 
   # commands run after the environment is setup
   # run:

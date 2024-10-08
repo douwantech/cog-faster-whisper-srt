@@ -1,32 +1,36 @@
 import os
 import argparse
 from datetime import datetime, timedelta  # Importing timedelta
-from zhconv import convert
-from faster_whisper import WhisperModel
+import whisper
+import sys
+import torch
+torch.set_num_threads(1)
 
 def format_timestamp(seconds):
     millis = int((seconds - int(seconds)) * 1000)
     return f"{str(timedelta(seconds=int(seconds)))}.{millis:03d}"
 
 def main(args):
-    start_time = datetime.now()
+    print(f"当前使用的设备：{device}")
+    print(f"PyTorch 是否检测到 GPU：{torch.cuda.is_available()}")
+    print(f"当前使用的 CUDA 设备数量：{torch.cuda.device_count()}")
+    print(f"当前 CUDA 设备索引：{torch.cuda.current_device()}")
+    print(f"当前 CUDA 设备名称：{torch.cuda.get_device_name(0)}")
 
+    start_time = datetime.now()
     bundle_dir = os.path.abspath(os.path.dirname(__file__))
     model_path = os.path.join(bundle_dir, "models")
-    model = WhisperModel(model_size_or_path=model_path, device="cuda", compute_type="int8")
-    segments, info = model.transcribe(args.input, beam_size=5, language='zh')
-
-    subtitles = []
-    for i, segment in enumerate(segments):
-        start = format_timestamp(segment.start)
-        end = format_timestamp(segment.end)
-        subtitle_text = f"{i+1}\n{start} --> {end}\n{convert(segment.text, 'zh-cn')}\n"
-        print(subtitle_text)
-        subtitles.append(subtitle_text)
+    model = whisper.load_model("large-v3-turbo", device="cuda")
+    result = model.transcribe(args.input, beam_size=5, task="transcribe", fp16=False)
 
     with open(args.output, "w", encoding="utf-8") as f:
-        for subtitle in subtitles:
-            f.write(subtitle + "\n")
+        for idx, segment in enumerate(result['segments']):
+            # SRT 文件索引从 1 开始
+            f.write(f"{idx+1}\n")
+            start_time = format_timestamp(segment['start'])
+            end_time = format_timestamp(segment['end'])
+            f.write(f"{start_time} --> {end_time}\n")
+            f.write(f"{segment['text'].strip()}\n\n")
 
     end_time = datetime.now()
     duration = end_time - start_time
@@ -41,3 +45,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(args)
+
