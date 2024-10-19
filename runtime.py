@@ -4,14 +4,13 @@ from datetime import datetime, timedelta  # Importing timedelta
 import whisper
 import sys
 import torch
-torch.set_num_threads(1)
+#torch.set_num_threads(1)
 
 def format_timestamp(seconds):
     millis = int((seconds - int(seconds)) * 1000)
     return f"{str(timedelta(seconds=int(seconds)))}.{millis:03d}"
 
 def main(args):
-    print(f"当前使用的设备：{device}")
     print(f"PyTorch 是否检测到 GPU：{torch.cuda.is_available()}")
     print(f"当前使用的 CUDA 设备数量：{torch.cuda.device_count()}")
     print(f"当前 CUDA 设备索引：{torch.cuda.current_device()}")
@@ -20,8 +19,8 @@ def main(args):
     start_time = datetime.now()
     bundle_dir = os.path.abspath(os.path.dirname(__file__))
     model_path = os.path.join(bundle_dir, "models")
-    model = whisper.load_model("large-v3-turbo", device="cuda")
-    result = model.transcribe(args.input, beam_size=5, task="transcribe", fp16=False)
+    model = whisper.load_model(f"{model_path}/large-v3-turbo.pt", device="cuda", download_root=None)
+    result = model.transcribe(args.input, beam_size=5, task='transcribe', temperature=0.0)
 
     with open(args.output, "w", encoding="utf-8") as f:
         for idx, segment in enumerate(result['segments']):
@@ -33,10 +32,9 @@ def main(args):
             f.write(f"{segment['text'].strip()}\n\n")
 
     end_time = datetime.now()
-    duration = end_time - start_time
 
     print(f"SRT file saved to {args.output}")
-    print(f"Script run time: {duration}")
+    print(f"Script run time: {start_time}-{end_time}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Transcribe audio to SRT using WhisperModel")
